@@ -1,37 +1,48 @@
 package go_cache
 
 import (
-	"go_cache/lru"
+	"context"
 	"sync"
 )
 
-// 基于lru增加并发特性
-type cache struct {
-	mu         sync.Mutex
-	lru        *lru.Cache
-	cacheBytes int64
+type Cache interface {
+	Set(ctx context.Context, key string, val any) error
+	Get(ctx context.Context, key string) Result
+	Delete(ctx context.Context, key string) Result
 }
 
-// add
-func (c *cache) add(key string, val ByteView) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.lru != nil {
-		c.lru = lru.New(c.cacheBytes, nil)
-	}
-	c.lru.Add(key, val)
+type Lcache struct {
+	cache map[string]any
+	mutex sync.RWMutex
+	close sync.Once
 }
 
-// get
-func (c *cache) get(key string) (value ByteView,
-	ok bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.lru == nil {
-		return
+func NewCache() Cache {
+	cache := make(map[string]any, 256)
+	return &Lcache{
+		cache: cache,
+		mutex: sync.RWMutex{},
+		close: sync.Once{},
 	}
-	if v, ok := c.lru.Get(key); ok {
-		return v.(ByteView), ok
-	}
-	return
+}
+
+func (m *Lcache) Set(ctx context.Context, key string, val any) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *Lcache) Get(ctx context.Context, key string) Result {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *Lcache) Delete(ctx context.Context, key string) Result {
+	//TODO implement me
+	panic("implement me")
+}
+func (m *Lcache) Close() error {
+	m.close.Do(func() {
+		m.cache = nil
+	})
+	return nil
 }
