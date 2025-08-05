@@ -1,21 +1,71 @@
 package go_cache
 
 import (
-	"context"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/redis/go-redis/v9"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestCache(t *testing.T) {
-	client := redis.NewClient(&redis.Options{
-		Addr: "127.0.0.1:6379",
+	str := "hello world"
+	fmt.Println(len(str))
+}
+
+func TestCacheSize(t *testing.T) {
+	testCase := []struct {
+		name   string
+		input  any
+		output uintptr
+	}{
+		{
+			name:   "int",
+			input:  int64(10),
+			output: 8,
+		},
+		{},
+		{
+			name:   "string", //struct{addr uintptr,len int} //存储字符串的结构体占用16个字节
+			input:  "hello world",
+			output: 16 + 11,
+		},
+		{
+			name: "struct",
+			input: struct {
+				age int
+				str string
+			}{
+				age: 231,
+				str: "22",
+			},
+			output: 16 + 2 + 8,
+		},
+		{
+			name: "嵌套结构体",
+			input: struct {
+				name string
+				age  int
+				s    struct {
+					name2 string
+				}
+			}{
+				name: "hello",
+				age:  2,
+				s: struct{ name2 string }{
+					name2: "world",
+				},
+			},
+			output: 16*2 + 5 + 5 + 8,
+		},
+	}
+	cache := NewCache(Option{
+		MaxCap:    100,
+		OnEvicted: nil,
 	})
-	err := client.Set(context.Background(), "key1", "aa", 0).Err()
-	require.NoError(t, err)
-	s := client.Decr(context.Background(), "key1").String()
-	fmt.Println(s)
-	lru.New()
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			size := cache.size(tc.input)
+			fmt.Println(size)
+			assert.Equal(t, tc.output, size)
+		})
+	}
 }
